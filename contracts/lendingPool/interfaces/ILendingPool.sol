@@ -26,29 +26,4 @@ interface ILendingPool {
         address indexed asset, 
         uint256 amount
     );
-
-    /**
-    * @dev Emitted on borrow()
-    * @param asset - The address of the underlying asset being borrowed
-    * @param user - The address of the user initiating the borrow()
-    * @param amount - The amount borrowed out
-    **/
-    event Borrow(
-        address user,
-        address indexed asset,
-        uint256 amount
-    );
-
-    /**
-    * @dev Emitted on repay()
-    * @param asset - The address of the underlying asset
-    * @param user - The address of the user initiating the repay() 
-    * @param amount - The amount repaid
-    **/
-    event Repay(
-        address indexed user,
-        address indexed asset,
-        uint256 amount
-    );
-
 }
