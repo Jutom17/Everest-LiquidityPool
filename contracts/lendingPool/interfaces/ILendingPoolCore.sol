@@ -2,7 +2,7 @@
 pragma solidity 0.8.0;
 
 
-interface ILendingPool {
+interface ILendingPoolCore {
     /**
     * @dev Emitted on deposit()
     * @param asset - The address of the underlying asset of the reserve
@@ -26,4 +26,9 @@ interface ILendingPool {
         address indexed asset, 
         uint256 amount
     );
+    
+    function deposit(address _asset, uint256 _amount) external {}
+
+    
+    function withdraw(uint256 _amount) external {}
 }
