@@ -14,12 +14,11 @@ contract LendingPool is ILendingPoolCore {
     IERC20 public eToken;
     IERC20 public poolToken;
 
-    uint256 pointMultiplier = 10**18;
-
     struct Account {
-        uint256 balance;
+        uint256 balance; 
         uint256 lastRewardReceived;
     }
+    
 
     constructor(address _eToken, address _poolToken) public {
         eToken = IERC20(_eToken);
@@ -54,39 +53,18 @@ contract LendingPool is ILendingPoolCore {
     }
 
 
-    function withdraw(address _eToken, uint256 _amount) external {
-        
+    function withdraw(address _eToken, uint256 _amount) external { 
         // Check to see if user has enough funds, and amount > 0
         require(_balances[msg.sender] >= _amount && _amount > 0)
-        
-        uint256 totalAmount = _amount;
-        
-        // calculate rewards
-        uint256 rewards = getRewards(msg.sender);
-        if (rewards > 0) {
-            _balances[msg.sender].balance += owing;
-            _balances[msg.sender].lastRewardReceived = _totalRewards;  
-            totalAmount.add(rewards);
-        }
-         
+          
         // Updates User balance
-        _balances[msg.sender] = _balances[msg.sender].sub(totalAmount);  
-        _totalSupply = _totalSupply.sub(totalAmount);
+        _balances[msg.sender] = _balances[msg.sender].sub(_amount);  
+        _totalSupply = _totalSupply.sub(_amount);
 
         // TODO burn eToken
 
-        poolToken.safeTransfer(msg.sender, totalAmount);
+        poolToken.safeTransfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount);
     }
 
-    // function to calculate total rewards gained.
-    function getRewards(address account) internal returns (uint256) {
-        // calculate the proportion of user deposit to total of the pool and then
-        // give the fees accordingly.
-        var newRewards = _totalRewards.sub(_balances[account].lastRewardReceived);
-        return (_balances[account].balance * newRewards) / pointMultiplier;
-
-        if (rewardsOwing > 0) {
-        } 
-    }
 }
