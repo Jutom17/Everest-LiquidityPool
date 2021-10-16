@@ -27,7 +27,7 @@ interface ILendingPoolCore {
         uint256 amount
     );
     
-    function deposit(address _asset, uint256 _amount) external {}
+    function deposit(address _token, uint256 _amount) external {}
 
     
     function withdraw(uint256 _amount) external {}

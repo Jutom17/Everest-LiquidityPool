@@ -7,16 +7,16 @@ import { IERC20 } from "../libraries/IERC20.sol";
 import { SafeERC20 } from "../libraries/SafeERC20.sol";
 
 
-contract EVRTLendingPool is ILendingPoolCore {
+contract LendingPool is ILendingPoolCore {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
         
-    IERC20 public eEVRT;
-    IERC20 public tokenEVRT;
+    IERC20 public eToken;
+    IERC20 public poolToken;
 
-    constructor(address _eEVRT, address _tokenEVRT) public {
-        eEVRT = IERC20(_eEVRT);
-        tokenEVRT = IERC20(_tokenEVRT);
+    constructor(address _eToken, address _poolToken) public {
+        eToken = IERC20(_eToken);
+        poolToken = IERC20(_poolToken);
     }
     
     // mapping of user address -> balance) 
@@ -26,7 +26,7 @@ contract EVRTLendingPool is ILendingPoolCore {
 
     function deposit(address _token, uint256 _amount) external {
         // Check which cosumes less gas on avalanche, if or require
-        require(_token == tokenEVRT, "Not everest token");
+        require(_token == poolToken, "Not everest token");
         require(_amount > 0, "Can't deposit 0")
 
         // Updates User balance
@@ -35,17 +35,17 @@ contract EVRTLendingPool is ILendingPoolCore {
         // Update total deposited in the pool
         _totalSupply = _totalSupply.add(_amount);
 
-        tokenEVRT.safeTransferFrom(msg.sender, address(this), _amount);
+        poolToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        // TODO mint and give user corresponding eEVRT tokens
+        // TODO mint and give user corresponding eToken values.
         
-        // eEVRT.safeTransfer(msg.sender, _amount);
+        // eToken.safeTransfer(msg.sender, _amount);
 
         emit Deposit(msg.sender, _amount);
     }
 
 
-    function withdraw(address _eEVRT, uint256 _amount) external {
+    function withdraw(address _eToken, uint256 _amount) external {
         
         // Check to see if user has enough funds, and amount > 0
         require(_balances[msg.sender] >= _amount && _amount > 0)
@@ -54,16 +54,15 @@ contract EVRTLendingPool is ILendingPoolCore {
         _balances[msg.sender] = _balances[msg.sender].sub(_amount);  
         _totalSupply = _totalSupply.sub(_amount);
 
-        // TODO burn eEVRT token
+        // TODO burn eToken
 
         // TODO add rewards that user got in proportion to the money deposited in the pool
         uint256 totalAmount = _amount;
         // totalAmount.add(fees);
 
-        tokenEVRT.safeTransfer(msg.sender, totalAmount);
+        poolToken.safeTransfer(msg.sender, totalAmount);
         emit Withdraw(msg.sender, _amount);
     }
 
     // Todo function to calculate total rewards gained.
 }
-
