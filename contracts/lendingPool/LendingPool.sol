@@ -14,15 +14,23 @@ contract LendingPool is ILendingPoolCore {
     IERC20 public eToken;
     IERC20 public poolToken;
 
+    uint256 pointMultiplier = 10**18;
+
+    struct Account {
+        uint256 balance;
+        uint256 lastRewardReceived;
+    }
+
     constructor(address _eToken, address _poolToken) public {
         eToken = IERC20(_eToken);
         poolToken = IERC20(_poolToken);
     }
     
     // mapping of user address -> balance) 
-    mapping(address => uint256) private _balances;
-    uint256 private _totalSupply; 
-  
+    mapping(address => Account) private _balances;
+    uint256 _totalSupply;
+    uint256 _totalRewards;
+
 
     function deposit(address _token, uint256 _amount) external {
         // Check which cosumes less gas on avalanche, if or require
@@ -38,6 +46,7 @@ contract LendingPool is ILendingPoolCore {
         poolToken.safeTransferFrom(msg.sender, address(this), _amount);
 
         // TODO mint and give user corresponding eToken values.
+        // eTokens amount == _amount
         
         // eToken.safeTransfer(msg.sender, _amount);
 
@@ -50,19 +59,34 @@ contract LendingPool is ILendingPoolCore {
         // Check to see if user has enough funds, and amount > 0
         require(_balances[msg.sender] >= _amount && _amount > 0)
         
+        uint256 totalAmount = _amount;
+        
+        // calculate rewards
+        uint256 rewards = getRewards(msg.sender);
+        if (rewards > 0) {
+            _balances[msg.sender].balance += owing;
+            _balances[msg.sender].lastRewardReceived = _totalRewards;  
+            totalAmount.add(rewards);
+        }
+         
         // Updates User balance
-        _balances[msg.sender] = _balances[msg.sender].sub(_amount);  
-        _totalSupply = _totalSupply.sub(_amount);
+        _balances[msg.sender] = _balances[msg.sender].sub(totalAmount);  
+        _totalSupply = _totalSupply.sub(totalAmount);
 
         // TODO burn eToken
-
-        // TODO add rewards that user got in proportion to the money deposited in the pool
-        uint256 totalAmount = _amount;
-        // totalAmount.add(fees);
 
         poolToken.safeTransfer(msg.sender, totalAmount);
         emit Withdraw(msg.sender, _amount);
     }
 
-    // Todo function to calculate total rewards gained.
+    // function to calculate total rewards gained.
+    function getRewards(address account) internal returns (uint256) {
+        // calculate the proportion of user deposit to total of the pool and then
+        // give the fees accordingly.
+        var newRewards = _totalRewards.sub(_balances[account].lastRewardReceived);
+        return (_balances[account].balance * newRewards) / pointMultiplier;
+
+        if (rewardsOwing > 0) {
+        } 
+    }
 }
