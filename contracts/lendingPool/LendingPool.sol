@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import { ILendingPoolCore } from "./interfaces/ILendingPoolCore.sol";
+import { IFlashLoan } from "./interfaces/IFlashLoan.sol";
 import { SafeMath } from "../libraries/SafeMath.sol";
 import { IERC20 } from "../libraries/IERC20.sol";
 import { ERC20 } from "../libraries/ERC20.sol";
@@ -10,9 +11,11 @@ import { SafeERC20 } from "../libraries/SafeERC20.sol";
 
 contract LendingPool is ILendingPoolCore, ERC20 {
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    //using SafeERC20 for IERC20;
         
     IERC20 public poolToken;
+    uint256 internal flashLoanFee = 0.0001 * 10**18; // 0.01%
+    uint256 constant internal ONE = 1e18;
 
     struct Account {
         uint256 balance;
@@ -40,7 +43,7 @@ contract LendingPool is ILendingPoolCore, ERC20 {
     function deposit(uint256 _amount) external { 
         require(_amount > 0, "Can't deposit 0");
 
-        uint256 totalAmount = _amount * ether;
+        uint256 totalAmount = _amount * 10**18;
 
         // mint it 1:1 to the amount put in
         _mint(msg.sender, totalAmount);
@@ -60,7 +63,7 @@ contract LendingPool is ILendingPoolCore, ERC20 {
         _poolTokenSupply = _poolTokenSupply.add(totalAmount);
         
         // Lock the poolToken in the contract
-        poolToken.safeTransferFrom(msg.sender, address(this), totalAmount);
+        poolToken.transferFrom(msg.sender, address(this), totalAmount);
         emit Deposit(msg.sender, totalAmount);
     }
 
@@ -70,7 +73,7 @@ contract LendingPool is ILendingPoolCore, ERC20 {
         // Check to see if user has enough funds, and amount > 0
         require(_balances[msg.sender].balance >= _amount && _amount > 0); 
         
-        uint256 totalAmount = _amount * ether;
+        uint256 totalAmount = _amount * 10**18;
 
         // Updates User balance
         _balances[msg.sender].balance = _balances[msg.sender].balance.sub(totalAmount);   
@@ -78,10 +81,30 @@ contract LendingPool is ILendingPoolCore, ERC20 {
         
         // burn eToken
         _burn(msg.sender, totalAmount);
-        poolToken.safeTransfer(msg.sender, totalAmount);
+        poolToken.transfer(msg.sender, totalAmount);
         
 
         emit Withdraw(msg.sender, totalAmount);
+    }
+
+    // Flash loan
+    function flashLoan(uint256 amount) external returns(bool){ 
+        IFlashLoan execFlashLoan;
+        // record how much user will have to pay back
+        // e.g. borrow 100, debt = 100.01
+        uint256 debt = amount.mul(ONE.add(flashLoanFee)).div(ONE);
+
+        // send borrower the tokens
+        require(poolToken.transfer(msg.sender, amount), "borrow failed");
+
+        // hand over control to borrwer
+        require(execFlashLoan.executeFlashLoan(poolToken, amount, debt), "flashLoan failed");
+
+        // repay the debt
+        require(poolToken.transferFrom(msg.sender, address(this), debt), "repayment failed");
+
+        return true;
+        
     }
 
 }
