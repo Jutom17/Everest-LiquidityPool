@@ -12,7 +12,7 @@ contract LendingPool is ILendingPoolCore, ERC20 {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
         
-    IERC20 public immutable poolToken;
+    IERC20 public poolToken;
 
     struct Account {
         uint256 balance;
@@ -37,19 +37,13 @@ contract LendingPool is ILendingPoolCore, ERC20 {
     }
 
     
-    function deposit(uint256 _amount) external {
+    function deposit(uint256 _amount) external { 
         require(_amount > 0, "Can't deposit 0");
 
-        uint256 totalAmount = _amount;
-        
-        // Gets the amount of poolToken locked in the contract
-        uint256 totalPoolToken = poolTokenBalance();
-
-        // Gets the amount of eToken in existence
-        uint256 eTokenTotal = totalSupply();
+        uint256 totalAmount = _amount * ether;
 
         // mint it 1:1 to the amount put in
-        _mint(msg.sender, _amount);
+        _mint(msg.sender, totalAmount);
 
         uint256 isFirstDeposit = _balances[msg.sender].isFirstDeposit;
         
@@ -60,7 +54,7 @@ contract LendingPool is ILendingPoolCore, ERC20 {
         } 
 
         // Updates User balance
-        _balances[msg.sender] = _balances[msg.sender].add(totalAmount);
+        _balances[msg.sender].balance = _balances[msg.sender].balance.add(totalAmount);
         
         // Update total deposited in the pool
         _poolTokenSupply = _poolTokenSupply.add(totalAmount);
@@ -74,26 +68,20 @@ contract LendingPool is ILendingPoolCore, ERC20 {
     // Unlocks the amount deposited + gained and burns the eToken.
     function withdraw(uint256 _amount) external { 
         // Check to see if user has enough funds, and amount > 0
-        require(_balances[msg.sender] >= _amount && _amount > 0);
+        require(_balances[msg.sender].balance >= _amount && _amount > 0); 
         
-        // Gets the amount of poolToken locked in the contract
-        uint256 totalPoolToken = poolTokenBalance();
+        uint256 totalAmount = _amount * ether;
 
-        // Gets the amount of eToken in existence
-        uint256 eTokenTotal = totalSupply();
-
-        // burn eToken.
-        _burn(msg.sender, _share);
-          
         // Updates User balance
-        _balances[msg.sender] = _balances[msg.sender].sub(_amount);  
-        _poolTokenSupply = _poolTokenSupply.sub(_amount);
-
+        _balances[msg.sender].balance = _balances[msg.sender].balance.sub(totalAmount);   
+        _poolTokenSupply = _poolTokenSupply.sub(totalAmount);
+        
         // burn eToken
-        _burn(msg.sender, _amount);
-        poolToken.safeTransfer(msg.sender, _amount);
+        _burn(msg.sender, totalAmount);
+        poolToken.safeTransfer(msg.sender, totalAmount);
+        
 
-        emit Withdraw(msg.sender, _amount);
+        emit Withdraw(msg.sender, totalAmount);
     }
 
 }
